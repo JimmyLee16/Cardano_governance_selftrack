@@ -1,6 +1,12 @@
-# Cardano Governance Self-track system
+# Cardano Governance Sync Tool
 
-Repo công khai cho hệ thống đồng bộ governance data từ Cardano blockchain (Blockfrost/Koios/IPFS) → **PostgreSQL** (Neon, Supabase direct, Railway, Render, local, Docker, etc.).
+Repo công khai cho hệ thống đồng bộ governance data từ Cardano blockchain (Blockfrost/Koios/IPFS) → **PostgreSQL** (Railway, Render, local, Docker, etc.).
+
+> **⚠️ Đây là phiên bản cơ bản (baseline).**
+>
+> Đủ để: khởi tạo database, fetch + ghi dữ liệu governance từ Koios/Blockfrost/IPFS vào PostgreSQL, verify, backup, generate AI summaries, TUI/CLI.
+>
+> Chưa bao gồm các tầng mở rộng (analytics, reporting, sharding, views, functions phụ trợ). Tự thêm khi cần xây dựng các hoạt động theo dõi, phân tích và đánh giá sâu. 
 
 ## Cấu trúc thư mục
 
@@ -11,8 +17,12 @@ new_repo/
 │   ├── setup_guide.md                 # Hướng dẫn setup PostgreSQL
 │   └── migrations/
 │       └── 20240101_initial_schema.sql
-├── Scripts/
-│   ├── Python/                        # 12 script sync (PostgreSQL generic)
+├── src/
+│   ├── Python/                        # 14 script sync + CLI + TUI (PostgreSQL generic)
+│   │   ├── tui.py                     # TUI entry (full-screen, ANSI, pure stdlib)
+│   │   ├── cli.py                     # CLI entry (subcommands)
+│   │   ├── config.py                  # Table columns, API config
+│   │   ├── helpers.py                 # Core helpers (PostgreSQL, IPFS, Koios, logging)
 │   │   ├── sync_epoch.py
 │   │   ├── sync_proposals.py
 │   │   ├── sync_drep_list.py
@@ -23,10 +33,12 @@ new_repo/
 │   │   ├── sync_all.py                # Orchestrator (chạy toàn bộ pipeline)
 │   │   ├── verify.py                  # Kiểm tra row counts
 │   │   ├── _backfill_recent_20.py
-│   │   ├── backup_neon_db.py
+│   │   ├── backup_db.py
 │   │   ├── generate_ai_summaries.py
 │   │   └── utils/                     # 9 helper modules
-│   └── JavaScript/                    # 11 script sync (PostgreSQL generic)
+│   └── JavaScript/                    # 12 script sync + CLI + TUI (PostgreSQL generic)
+│       ├── tui.js                     # TUI entry (blessed, full-screen)
+│       ├── cli.js                     # CLI entry (Commander + Inquirer)
 │       ├── sync_epoch.js
 │       ├── sync_proposals.js
 │       ├── sync_drep_list.js
@@ -41,7 +53,9 @@ new_repo/
 │       └── package.json
 ├── .env.example                       # Template biến môi trường
 ├── requirements.txt                   # Python dependencies
-├── package.json                       # Root JS (points to Scripts/JavaScript)
+├── package.json                       # Root JS (points to src/JavaScript)
+├── tui.py                             # Root entry → src/Python/tui.py
+├── tui.js                             # Root entry → src/JavaScript/tui.js
 ├── .gitignore
 └── README.md
 ```
@@ -50,7 +64,7 @@ new_repo/
 
 ### Python
 ```bash
-cd Scripts/Python
+cd src/Python
 pip install -r ../../requirements.txt
 # Hoặc: pip install psycopg2-binary requests python-dotenv
 cp ../../.env.example .env
@@ -59,7 +73,7 @@ cp ../../.env.example .env
 
 ### JavaScript (Node.js)
 ```bash
-cd Scripts/JavaScript
+cd src/JavaScript
 npm install
 cp ../../.env.example .env
 # Chỉnh .env với DATABASE_URL, BLOCKFROST_PROJECT_ID
@@ -67,41 +81,99 @@ cp ../../.env.example .env
 
 ## Chạy
 
-### Python pipeline
+### TUI (full-screen interactive) — Khuyến nghị
 ```bash
-cd Scripts/Python
+# Từ repo root — không cần cd
+python tui.py          # Python TUI (pure stdlib, ANSI)
+node tui.js            # JS TUI (blessed, full-screen)
 
-# Full sync (chạy hết 7 bước + verify)
-python sync_all.py
-
-# Skip drep_delegators (chậm)
-python sync_all.py --skip-delegators
-
-# Chỉ chạy 1 bước
-python sync_all.py --only=proposals
-
-# Chỉ verify DB
-python sync_all.py --verify
-# Hoặc
-python verify.py
+# Hoặc từ src/
+cd src/Python && python tui.py
+cd src/JavaScript && node tui.js
 ```
 
-### JavaScript pipeline
+TUI có menu full-screen, arrow keys để navigate, Enter để chọn:
+- Full Sync / Sync từng bước
+- Verify DB / DB Status
+- Backup DB (full / logic only)
+- AI Summaries (dry-run / apply / skip-existing)
+- View Logs (chọn file, xem last 100 lines)
+
+### Python CLI (subcommands)
 ```bash
-cd Scripts/JavaScript
+cd src/Python
+
+# Full sync (chạy hết 7 bước + verify)
+python cli.py sync
+
+# Skip drep_delegators (chậm)
+python cli.py sync --skip-delegators
+
+# Chỉ chạy 1 bước
+python cli.py sync proposals
+
+# Verify DB
+python cli.py verify
+
+# Quick DB status
+python cli.py status
+
+# Backup DB
+python cli.py backup
+python cli.py backup --no-data        # logic only
+
+# AI summaries
+python cli.py ai --dry-run            # preview
+python cli.py ai --apply              # write to DB
+python cli.py ai --apply --skip-existing  # only NULL fields
+
+# Logs
+python cli.py logs                    # list log files
+python cli.py logs --tail             # tail latest log
+```
+
+### JavaScript CLI
+```bash
+cd src/JavaScript
 
 # Full sync
-node sync_all.js
+node cli.js sync
 
 # Skip drep_delegators
-node sync_all.js --skip-delegators
+node cli.js sync --skip-delegators
 
 # Chỉ 1 bước
-node sync_all.js --only=proposals
+node cli.js sync proposals
 
-# Chỉ verify
-node sync_all.js --verify
-# Hoặc
+# Verify DB
+node cli.js verify
+
+# Quick DB status
+node cli.js status
+
+# Backup (calls Python backup_db.py)
+node cli.js backup
+node cli.js backup --no-data
+
+# AI summaries (calls Python generate_ai_summaries.py)
+node cli.js ai --apply
+
+# Logs
+node cli.js logs
+node cli.js logs --tail
+
+# Interactive menu (default when no args)
+node cli.js
+```
+
+### Direct scripts (không qua CLI)
+```bash
+# Python
+python sync_all.py --skip-delegators
+python verify.py
+
+# JavaScript
+node sync_all.js --skip-delegators
 node verify.js
 ```
 
@@ -121,7 +193,7 @@ node verify.js
 
 Xem `Database/setup_guide.md` để setup PostgreSQL với schema đầy đủ (6 bảng chính + triggers tạo ga_* tables tự động).
 
-Schema chạy được trên bất kỳ PostgreSQL provider nào: Neon, Supabase (direct connection), Railway, Render, Fly.io, local Docker, etc.
+Schema chạy được trên bất kỳ PostgreSQL provider nào: Railway, Render, Fly.io, local Docker, etc.
 
 ## Biến môi trường
 
@@ -131,10 +203,14 @@ Schema chạy được trên bất kỳ PostgreSQL provider nào: Neon, Supabase
 | `BLOCKFROST_PROJECT_ID` | ✅ | Blockfrost API key |
 | `IPFS_GATEWAY` | ❌ | IPFS gateway (mặc định: `https://ipfs.io/ipfs/`) |
 
+## Phạm vi
+
+Đây là phiên bản cơ bản — đủ để khởi tạo DB, sync, verify, backup, AI summaries, TUI/CLI. Các tầng mở rộng (analytics, reporting, sharding, views, functions phụ trợ) tự thêm khi cần.
+
 ## Lưu ý
 
 - **Python & JavaScript**: Cả hai đều dùng PostgreSQL generic (`DATABASE_URL`), không lock vào provider cụ thể
 - ga_* tables được tạo tự động bởi trigger khi insert vào `proposals`
 - `sync_vote_activities` bỏ qua IPFS fetch nếu vote đã có comment trong DB
 - `sync_drep_info` và `sync_drep_delegators` có checkpoint/resume (chạy nhiều lần để hoàn thành)
-- Logs lưu tại `Scripts/Python/logs/` (Python) hoặc console (JS)
+- Logs lưu tại `src/Python/logs/` (Python) hoặc console (JS)

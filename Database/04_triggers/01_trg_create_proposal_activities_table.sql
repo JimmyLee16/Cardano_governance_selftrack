@@ -1,27 +1,19 @@
 -- Function & Trigger: Tự động tạo ga_* table cho proposal mới
--- Chạy AFTER INSERT trên proposals
+-- Chạy BEFORE INSERT trên proposals (sets activities_table_name + activities_table_created)
 -- Phụ thuộc: 02_tables/01_proposals.sql
 
--- Function: Tạo ga_* table cho proposal mới
-CREATE OR REPLACE FUNCTION public.trg_create_proposal_activities_table()
+-- Function: Tạo ga_* table cho proposal mới (dựa trên proposal_id)
+CREATE OR REPLACE FUNCTION public.create_proposal_activities_table()
 RETURNS TRIGGER AS $$
 DECLARE
-    md5_prefix TEXT;
-    sanitized_title TEXT;
     table_name TEXT;
+    create_table_sql TEXT;
+    index_sql TEXT;
+    constraint_sql TEXT;
 BEGIN
-    -- Lấy 10 ký tự đầu của md5(title) để tạo tên table ngắn
-    md5_prefix := encode(digest(NEW.title, 'md5'), 'hex')[:10];
-    -- Sanitize title: lowercase, remove special chars, truncate
-    sanitized_title := lower(regexp_replace(NEW.title, '[^a-z0-9]', '', 'g'));
-    if length(sanitized_title) > 30 then
-        sanitized_title := left(sanitized_title, 30);
-    end if;
+    table_name := 'ga_' || left(md5(NEW.proposal_id), 10) || '_' || left(regexp_replace(NEW.proposal_id, '[^a-zA-Z0-9]', '', 'g'), 40);
 
-    table_name := 'ga_' || md5_prefix || '_' || sanitized_title;
-
-    -- Tạo table IF NOT EXISTS
-    EXECUTE format(
+    create_table_sql := format(
         'CREATE TABLE IF NOT EXISTS %I (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             block_time TIMESTAMP WITH TIME ZONE NULL,
@@ -35,41 +27,40 @@ BEGIN
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )', table_name
     );
+    EXECUTE create_table_sql;
 
-    -- Thêm indexes
-    EXECUTE format(
-        'CREATE UNIQUE INDEX IF NOT EXISTS idx_%I_voter_block_time ON %I (voter_id, block_time)',
-        table_name, table_name
-    );
-    EXECUTE format(
-        'CREATE INDEX IF NOT EXISTS idx_%I_voter ON %I (voter_id)',
-        table_name, table_name
-    );
-    EXECUTE format(
-        'CREATE INDEX IF NOT EXISTS idx_%I_role ON %I (voter_role)',
-        table_name, table_name
-    );
-    EXECUTE format(
-        'CREATE INDEX IF NOT EXISTS idx_%I_block_time ON %I (block_time DESC)',
-        table_name, table_name
-    );
-    EXECUTE format(
-        'CREATE INDEX IF NOT EXISTS idx_%I_vote ON %I (vote)',
-        table_name, table_name
-    );
+    BEGIN
+        constraint_sql := format(
+            'ALTER TABLE %I ADD CONSTRAINT uk_%s_voter_block_time UNIQUE (voter_id, block_time)',
+            table_name, left(md5(NEW.proposal_id), 8)
+        );
+        EXECUTE constraint_sql;
+    EXCEPTION
+        WHEN duplicate_table THEN RAISE NOTICE 'Constraint already exists for table %', table_name;
+        WHEN duplicate_object THEN RAISE NOTICE 'Constraint already exists for table %', table_name;
+    END;
 
-    -- Lưu tên table xuống proposals
-    UPDATE public.proposals
-    SET activities_table_name = table_name
-    WHERE proposal_id = NEW.proposal_id;
+    index_sql := format(
+        'CREATE INDEX IF NOT EXISTS idx_%s_voter_id ON %I(voter_id);
+         CREATE INDEX IF NOT EXISTS idx_%s_voter_role ON %I(voter_role);
+         CREATE INDEX IF NOT EXISTS idx_%s_block_time ON %I(block_time DESC);
+         CREATE INDEX IF NOT EXISTS idx_%s_vote ON %I(vote);',
+        left(md5(NEW.proposal_id), 8), table_name,
+        left(md5(NEW.proposal_id), 8), table_name,
+        left(md5(NEW.proposal_id), 8), table_name,
+        left(md5(NEW.proposal_id), 8), table_name
+    );
+    EXECUTE index_sql;
 
+    NEW.activities_table_name := table_name;
+    NEW.activities_table_created := TRUE;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
 
--- Trigger: Chạy sau mỗi INSERT INTO proposals
+-- Trigger: Chạy trước mỗi INSERT INTO proposals
 DROP TRIGGER IF EXISTS trg_create_proposal_activities_table ON public.proposals;
 CREATE TRIGGER trg_create_proposal_activities_table
-    AFTER INSERT ON public.proposals
+    BEFORE INSERT ON public.proposals
     FOR EACH ROW
-    EXECUTE FUNCTION public.trg_create_proposal_activities_table();
+    EXECUTE FUNCTION public.create_proposal_activities_table();

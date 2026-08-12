@@ -1,0 +1,28 @@
+{
+  "name": "cardano-governance",
+  "version": "1.0.0",
+  "description": "Cardano Governance Sync Tool",
+  "main": "tui.js",
+  "bin": {
+    "cardano-gov-tui": "./tui.js"
+  },
+  "scripts": {
+    "start": "node tui.js",
+    "tui": "node tui.js",
+    "cli": "node src/JavaScript/cli.js",
+    "sync": "node src/JavaScript/cli.js sync",
+    "verify": "node src/JavaScript/cli.js verify",
+    "status": "node src/JavaScript/cli.js status",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cardano",
+    "governance",
+    "blockchain"
+  ],
+  "author": "Developer",
+  "license": "MIT",
+  "dependencies": {
+    "pg": "^8.11.0"
+  }
+}

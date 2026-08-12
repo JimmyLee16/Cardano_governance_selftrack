@@ -1,0 +1,40 @@
+{
+  "name": "cardano-gov-sync-js",
+  "version": "1.0.0",
+  "description": "JavaScript/Node.js backend for Cardano Governance Sync Tool - Generic PostgreSQL (Railway, Render, local, Docker, etc.)",
+  "main": "helpers.js",
+  "bin": {
+    "cardano-gov": "./cli.js"
+  },
+  "scripts": {
+    "cli": "node cli.js",
+    "sync": "node cli.js sync",
+    "verify": "node cli.js verify",
+    "status": "node cli.js status",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cardano",
+    "governance",
+    "postgresql",
+    "koios",
+    "blockfrost",
+    "javascript"
+  ],
+  "author": "Cardano Tool Dev",
+  "license": "MIT",
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "dotenv": "^16.3.1",
+    "inquirer": "^9.3.7",
+    "json-bigint": "^1.0.0",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.1.1"
+  }
+}
