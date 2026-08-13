@@ -1,5 +1,28 @@
 # See https://help.github.com/articles/ignoring-files/
-# .gitignore
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node
 node_modules/
+
+# Logs
 *.log
-*.env
+logs/
+
+# Env files (never commit real keys)
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Test artifacts
+.pytest_cache/
+.coverage

@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cardano_gov_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install psycopg2-binary requests python-dotenv
+
+      - name: Load database schema
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d cardano_gov_test -f Database/database_schema.sql
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/cardano_gov_test
+        run: python -m unittest discover -s tests
+
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax check JS files
+        run: |
+          for f in src/JavaScript/*.js tui.js; do node --check "$f"; done
