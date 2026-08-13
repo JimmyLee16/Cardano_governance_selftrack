@@ -1,4 +1,4 @@
-# Cardano Governance Sync Tool
+# Cardano Governance Track and Sync Tools
 
 Public repo for a governance data tracking & sync system from the Cardano blockchain (Blockfrost/Koios/IPFS) → **PostgreSQL** (Railway, Render, local, Docker, etc.).
 
