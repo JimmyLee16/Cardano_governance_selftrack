@@ -9,99 +9,126 @@
 ```bash
 # 1. Clone repo
 git clone <repo-url>
-cd neon_sync
+cd Cardano_governance_selftrack
 
-# 2. Create virtual env (Windows)
+# 2. Create virtual env
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate        # Linux/Mac
+# .venv\Scripts\activate         # Windows
 
 # 3. Install dependencies
 pip install -r requirements.txt
 ```
 
-> **Note**: Python 3.11+ is required. On Windows, `pip install psycopg2-binary` may fail due to a missing C compiler - use `pip install psycopg2` (it will build automatically).
+> **Note**: Python 3.11+ is required. On Windows, if `pip install psycopg2-binary` fails, use `pip install psycopg2` instead.
 
 ---
 
-## ⚡ Step 2: Configure `.env`
+## ⚡ Step 2: Set up the database
+
+The tool works with **any PostgreSQL** — hosted (Railway, Render, Fly.io, Neon) or local. Pick one:
+
+### Option A: Lite SQL — local PostgreSQL (fastest to test)
 
 ```bash
-copy .env.example .env
+# Ubuntu / Debian / Codespace
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib
+sudo service postgresql start
+
+# Mac
+# brew install postgresql && brew services start postgresql
 ```
 
-Edit the `.env` file with the following values:
+```bash
+# Create a DB + set the postgres password
+sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+sudo -u postgres createdb cardano_gov
+
+# Load the schema (tables, indexes, triggers, functions)
+PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d cardano_gov -f Database/database_schema.sql
+```
+
+Your connection string is then:
 
 ```ini
-# ===== Cardano API =====
-BLOCKFROST_PROJECT_ID=your_blockfrost_project_id
-IPFS_GATEWAY=https://ipfs.io/ipfs/
-
-# ===== Neon PostgreSQL (Real source) =====
-NEON_CONN=postgresql://user:password@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
-
-# ===== Supabase (View/UI data) =====
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your_service_role_key        # <--- MUST be a service role key, not anon!
-SUPABASE_GOVERNANCE_URL_1=https://your-project.supabase.co
-SUPABASE_GOVERNANCE_SERVICE_ROLE_KEY_1=your_service_role_key
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/cardano_gov
 ```
 
-> **Important**: `NEON_CONN` must include `?sslmode=require`. Example connection string:
-> `postgresql://ep_user:ep_pwd@ep-cardanainstance-pooler.us-east-1.aws.neon.tech/cardano?sslmode=require`
+### Option B: Hosted PostgreSQL (Railway, Render, Neon, Fly.io)
+
+Create a DB on your provider, then:
+
+```bash
+psql "$DATABASE_URL" -f Database/database_schema.sql
+```
+
+> **Important**: `DATABASE_URL` must be `postgresql://user:pass@host:5432/dbname` (+ `?sslmode=require` for hosted providers).
 
 ---
 
-## ⚡ Step 3: Check the connection
+## ⚡ Step 3: Configure `.env`
 
 ```bash
-python -c "
-from helpers import neon_connect
-conn = neon_connect()
-print('✅ Neon connection OK')
-conn.close()
-"
+cp .env.example src/Python/.env
 ```
 
-If you see `✅ Neon connection OK` → Continue to step 4.
+Edit `src/Python/.env`:
 
-On error: Check that `NEON_CONN` has the correct format, and allow your IP to connect to Neon.
+```ini
+# ===== PostgreSQL (from step 2) =====
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/cardano_gov
+
+# ===== Blockfrost (required for DRep list/info) =====
+BLOCKFROST_PROJECT_ID=your_blockfrost_project_id
+
+# ===== Optional =====
+# IPFS_GATEWAY=https://ipfs.io/ipfs/
+# OPENAI_API_KEY=sk-...            # for generate_ai_summaries.py
+# OPENAI_BASE_URL=https://api.openai.com/v1
+# OPENAI_MODEL=gpt-4o-mini
+```
+
+Check the connection:
+
+```bash
+cd src/Python
+python cli.py status
+```
+
+If it shows the DB is reachable → continue to step 4.
 
 ---
 
 ## ⚡ Step 4: Run the sync pipeline (full)
 
 ```bash
-# Run all steps in the correct order:
+cd src/Python
+
+# Full sync (all 7 steps + verify)
 python sync_all.py
-```
 
-Or run each step individually (in order of importance):
+# Or skip the slow delegators step
+python sync_all.py --skip-delegators
 
-```bash
-# Step 4.1: Sync epoch + proposal status
+# Or run one step at a time (in order!)
 python sync_epoch.py
-
-# Step 4.2: Sync proposals + create ga_* tables (auto trigger)
-python sync_proposals.py
-
-# Step 4.3: Sync DRep list + info
+python sync_proposals.py        # also auto-creates ga_* tables (trigger)
 python sync_drep_list.py
 python sync_drep_info.py
-
-# Step 4.4: Sync vote activities + IPFS comments (IMPORTANT)
-python sync_vote_activities.py --only-active
-
-# Step 4.5: Sync delegators (current + history)
-python sync_drep_delegators.py
+python sync_voting_summary.py
+python sync_vote_activities.py  # votes + IPFS comments
+python sync_drep_delegators.py  # slow, can skip
 ```
 
-> **Important note**: Order matters! You must run the steps in the order above. The trigger that creates `ga_*` tables only works correctly once `proposals` has data.
+> **Important**: Order matters! The trigger that creates `ga_*` tables only works once `proposals` has data.
 
 ---
 
 ## ⚡ Step 5: Verify the data
 
 ```bash
+cd src/Python
 python verify.py
 ```
 
@@ -117,36 +144,42 @@ drep_delegators:        28
 sync_jobs:              6
 ```
 
-If all tables have row > 0 → **Setup complete! Start using the GUI or your own scripts.**
+If all tables have rows > 0 → **Setup complete!**
 
 ---
 
-## 🛠 Troubleshooting after step 5
+## 🛠 What to do now?
+
+1. **Run the TUI**: `python tui.py` — full-screen menu for sync/verify/backup/AI/logs
+2. **CLI**: `python cli.py sync | verify | status | backup | ai | logs`
+3. **Run tests**: see `tests/README.md` (unit tests + schema integration tests)
+4. **Read the docs**: `docs/SCRIPTS_GUIDE.md`, `docs/TUI_CLI_GUIDE.md`, `README.md`
+5. **Dashboard**: see `UI/DASHBOARD_GUIDE.md` for a Streamlit dashboard guide
+
+---
+
+## 🛠 Troubleshooting
 
 | Common error | Cause | Fix |
 |--------------|-----------|-----|
 | Comment stays NULL | `meta_url` is None or IPFS has no `comment`/`rationale` | Check the Koios API: `GET /api/v1/proposal_votes?_proposal_id={pid}` |
-| `neon_upsert_batch` batch error | Missing `comment` key in the row dict | Code is fixed: Always include `'comment': comment` (may be `''`) |
-| `sync_epoch.py` slow | BATCH_SIZE too small | Increase from 1000 to 5000 in `config.py` |
-| `psql` command not found | PostgreSQL client not installed | Windows: download PG Installer; Mac: `brew install postgresql` |
+| Batch error: missing `comment` key | Row dict lacks the key | Always include `'comment': comment` (may be `''`) |
+| `sync_drep_info` stops mid-way | API rate limit | Run it again — it resumes from a checkpoint |
+| `sync_drep_delegators` too slow | Large delegator set | Use `--skip-delegators` or run repeatedly (it resumes) |
+| `psql` command not found | PostgreSQL client not installed | Windows: PG Installer; Mac: `brew install postgresql` |
 
 ---
 
-## 📦 References after Quick Start
+## 📦 References
 
-- `README.md` - Full documentation (architecture, scripts, GUI, backup)
-- `SCHEMA.md` - Database schema details + triggers + code samples
-- `logs/` - Logs are created automatically after each script run
-- `backups/` - Database backups (run `python backup_neon_db.py`)
-
----
-
-## 🎯 What to do now?
-
-1. **Run the GUI**: `python gui.py` - has a drag-and-drop interface for each step
-2. **View sample code**: `SCHEMA.md` includes code for upsert, fetch IPPS, backup
-3. **Automate**: Add to Task Scheduler (Windows) or cron (Linux/Mac) to run hourly/daily
-4. **Deploy Supabase Edge Functions** (optional): See the ☁️ Supabase Edge Functions section in `README.md`
+- `README.md` — Full documentation (architecture, scripts, structure)
+- `docs/SCRIPTS_GUIDE.md` — Script logic notes
+- `docs/TUI_CLI_GUIDE.md` — TUI/CLI usage guide
+- `docs/TEST_LOG.md` — Test run log (87 tests)
+- `tests/README.md` — PostgreSQL setup + how to run tests
+- `Database/setup_guide.md` — Detailed DB setup guide
+- `UI/DASHBOARD_GUIDE.md` — Dashboard guide + sample app
+- `logs/` — Logs are created automatically after each script run
 
 ---
-*Quick Start auto-generated on 12/08/2026*
+*Quick Start — updated 13/08/2026*

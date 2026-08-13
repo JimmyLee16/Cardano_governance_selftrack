@@ -20,7 +20,7 @@
     "governance",
     "blockchain"
   ],
-  "author": "Developer",
+  "author": "Jimmy Lee",
   "license": "MIT",
   "dependencies": {
     "pg": "^8.11.0"

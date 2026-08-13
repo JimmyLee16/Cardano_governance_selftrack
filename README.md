@@ -13,16 +13,35 @@ Public repo for a governance data sync system from the Cardano blockchain (Block
 ```
 new_repo/
 ├── Database/                          # SQL schema + setup guide
-│   ├── database_schema.sql            # Full schema (CREATE TABLE 6 tables + triggers)
+│   ├── database_schema.sql            # Full schema (single entry point, includes all below)
+│   ├── README.md                      # DB overview
 │   ├── setup_guide.md                 # PostgreSQL setup guide
+│   ├── 01_extensions/                 # Extensions
+│   │   └── 01_enable_uuid_extension.sql
+│   ├── 02_tables/                     # 6 core tables (CREATE TABLE)
+│   │   ├── 01_proposals.sql
+│   │   ├── 02_proposal_voting_summary.sql
+│   │   ├── 03_drep_list.sql
+│   │   ├── 04_drep_info.sql
+│   │   ├── 05_drep_delegators.sql
+│   │   └── 06_sync_jobs.sql
+│   ├── 03_indexes/                    # Indexes
+│   │   ├── 01_proposals_indexes.sql
+│   │   ├── 02_sync_jobs_indexes.sql
+│   │   └── 03_drep_delegators_indexes.sql
+│   ├── 04_triggers/                   # Triggers (auto-create ga_* tables)
+│   │   ├── 01_trg_create_proposal_activities_table.sql
+│   │   ├── 02_trg_create_proposal_summary_entry.sql
+│   │   └── 03_drop_triggers.sql
 │   └── migrations/
 │       └── 20240101_initial_schema.sql
 ├── src/
-│   ├── Python/                        # 14 sync scripts + CLI + TUI (PostgreSQL generic)
+│   ├── Python/                        # Sync scripts + CLI + TUI + utils (PostgreSQL generic)
 │   │   ├── tui.py                     # TUI entry (full-screen, ANSI, pure stdlib)
 │   │   ├── cli.py                     # CLI entry (subcommands)
 │   │   ├── config.py                  # Table columns, API config
 │   │   ├── helpers.py                 # Core helpers (PostgreSQL, IPFS, Koios, logging)
+│   │   ├── drep_info_checkpoint.py    # Checkpoint/resume for drep_info sync
 │   │   ├── sync_epoch.py
 │   │   ├── sync_proposals.py
 │   │   ├── sync_drep_list.py
@@ -32,11 +51,10 @@ new_repo/
 │   │   ├── sync_vote_activities.py
 │   │   ├── sync_all.py                # Orchestrator (runs the whole pipeline)
 │   │   ├── verify.py                  # Checks row counts
-│   │   ├── _backfill_recent_20.py
 │   │   ├── backup_db.py
 │   │   ├── generate_ai_summaries.py
-│   │   └── utils/                     # 9 helper modules
-│   └── JavaScript/                    # 12 sync scripts + CLI + TUI (PostgreSQL generic)
+│   │   └── utils/                     # 9 helper/debug modules
+│   └── JavaScript/                    # Sync scripts + CLI + TUI (PostgreSQL generic)
 │       ├── tui.js                     # TUI entry (blessed, full-screen)
 │       ├── cli.js                     # CLI entry (Commander + Inquirer)
 │       ├── sync_epoch.js
@@ -51,11 +69,25 @@ new_repo/
 │       ├── config.js                  # Table column definitions
 │       ├── helpers.js                 # Core helpers (PostgreSQL, IPFS, Koios, logging)
 │       └── package.json
+├── tests/                             # Unit + schema integration tests
+│   ├── README.md                      # PostgreSQL setup + how to run tests
+│   ├── test_config.py                 # Config constants (no DB)
+│   ├── test_helpers.py                # Pure helpers + SQL build (no DB)
+│   ├── test_checkpoint.py             # Checkpoint file logic (no DB)
+│   ├── test_ai_summaries.py           # AI summary parsing, mocked API (no DB)
+│   └── test_schema.py                 # DB schema integration (skipped without DATABASE_URL)
+├── docs/                              # Docs
+│   ├── SCRIPTS_GUIDE.md               # Script logic notes
+│   ├── TUI_CLI_GUIDE.md               # TUI/CLI usage guide
+│   └── TEST_LOG.md                    # Test run log
+├── UI/                                # Dashboard guide
+│   └── DASHBOARD_GUIDE.md             # Streamlit dashboard guide + sample app
 ├── .env.example                       # Environment variable template
 ├── requirements.txt                   # Python dependencies
 ├── package.json                       # Root JS (points to src/JavaScript)
 ├── tui.py                             # Root entry → src/Python/tui.py
 ├── tui.js                             # Root entry → src/JavaScript/tui.js
+├── QUICK_START.md                     # Quick start guide
 ├── .gitignore
 └── README.md
 ```
