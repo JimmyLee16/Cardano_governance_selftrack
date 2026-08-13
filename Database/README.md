@@ -2,28 +2,28 @@
 
 ```
 Database/
-├── database_schema.sql              # Master file (kết hợp tất cả, chạy file này để setup full)
-├── setup_guide.md                   # Hướng dẫn setup PostgreSQL
+├── database_schema.sql              # Master file (combines everything, run this for a full setup)
+├── setup_guide.md                   # PostgreSQL setup guide
 ├── migrations/
-│   └── 20240101_initial_schema.sql  # Migration ban đầu (giữ nguyên)
+│   └── 20240101_initial_schema.sql  # Initial migration (kept as-is)
 └── [Individual scripts by purpose]
     ├── 01_extensions/               # PostgreSQL extensions
     │   └── 01_enable_uuid_extension.sql
-    ├── 02_tables/                   # Core tables (theo thứ tự phụ thuộc)
+    ├── 02_tables/                   # Core tables (in dependency order)
     │   ├── 01_proposals.sql
     │   ├── 02_proposal_voting_summary.sql
     │   ├── 03_drep_list.sql
     │   ├── 04_drep_info.sql
     │   ├── 05_drep_delegators.sql
     │   └── 06_sync_jobs.sql
-    ├── 03_indexes/                  # Indexes riêng biệt
+    ├── 03_indexes/                  # Separate indexes
     │   ├── 01_proposals_indexes.sql
     │   ├── 02_sync_jobs_indexes.sql
     │   └── 03_drep_delegators_indexes.sql
     ├── 04_triggers/                 # Triggers & Functions
-    │   ├── 01_trg_create_proposal_activities_table.sql  # Tự tạo ga_* table
-    │   ├── 02_trg_create_proposal_summary_entry.sql     # Tự tạo voting_summary entry
-    │   └── 03_drop_triggers.sql       # Helper drop triggers
+    │   ├── 01_trg_create_proposal_activities_table.sql  # Auto-creates ga_* tables
+    │   ├── 02_trg_create_proposal_summary_entry.sql     # Auto-creates voting_summary entry
+    │   └── 03_drop_triggers.sql       # Helper to drop triggers
     └── 05_views/                    # (Reserved for future views)
 ```
 
@@ -46,8 +46,8 @@ Database/
             │                         │                          │
             ▼                         ▼                          ▼
 ┌───────────────────────┐  ┌─────────────────────┐  ┌──────────────────────────┐
-│ proposal_voting_summary│  │  ga_<md5>_<title>   │  │  (trigger tạo row mới    │
-│  PK = proposal_id      │  │  (dynamic, 1/proposal)│  │   trong voting_summary)  │
+│ proposal_voting_summary│  │  ga_<md5>_<title>   │  │  (trigger creates a new  │
+│  PK = proposal_id      │  │  (dynamic, 1/proposal)│  │   row in voting_summary)│
 │  FK → proposals        │  │  vote activities     │  └──────────────────────────┘
 │  DRep/Pool/Committee   │  │  id, voter_id, vote, │
 │  vote counts + power   │  │  comment, block_time │
@@ -55,7 +55,7 @@ Database/
                                       ▲
                                       │ logical link
                                       │ (activities_table_name
-                                      │  lưu trong proposals)
+                                      │  stored in proposals)
                                       │
                           ┌───────────┴───────────┐
                           │      proposals        │
@@ -83,7 +83,7 @@ Database/
 
 
   ┌───────────────────────┐
-  │      sync_jobs        │  ◄── standalone (lịch sử chạy sync)
+  │      sync_jobs        │  ◄── standalone (sync run history)
   │  PK = id (UUID)       │
   │  job_type, status,    │
   │  config (JSONB)       │
@@ -104,26 +104,26 @@ Database/
 
 LEGEND
   ───►  Foreign Key (FK)
-  ═══►  Logical link (không phải FK, lưu tên table trong cột)
+  ═══►  Logical link (not an FK, stores the table name in a column)
   1:1   One-to-one
   1:N   One-to-many
   PK    Primary Key
-  ga_*  Dynamic table, 1 table per proposal (tạo bởi trigger)
+  ga_*  Dynamic table, 1 table per proposal (created by trigger)
 ```
 
-## Cách chạy
+## How to run
 
-### Option 1: Chạy file master (khuyên dùng)
+### Option 1: Run the master file (recommended)
 ```bash
 psql "$DATABASE_URL" -f database_schema.sql
 ```
 
-### Option 2: Chạy từng file riêng (cho CI/CD, debug)
+### Option 2: Run files individually (for CI/CD, debug)
 ```bash
 # 1. Extensions
 psql "$DATABASE_URL" -f 01_extensions/01_enable_uuid_extension.sql
 
-# 2. Tables (theo thứ tự)
+# 2. Tables (in order)
 psql "$DATABASE_URL" -f 02_tables/01_proposals.sql
 psql "$DATABASE_URL" -f 02_tables/02_proposal_voting_summary.sql
 psql "$DATABASE_URL" -f 02_tables/03_drep_list.sql
@@ -141,7 +141,7 @@ psql "$DATABASE_URL" -f 04_triggers/01_trg_create_proposal_activities_table.sql
 psql "$DATABASE_URL" -f 04_triggers/02_trg_create_proposal_summary_entry.sql
 ```
 
-## Phụ thuộc (Dependency Order)
+## Dependencies (Dependency Order)
 
 ```
 01_extensions/01_enable_uuid_extension.sql
@@ -162,27 +162,27 @@ psql "$DATABASE_URL" -f 04_triggers/02_trg_create_proposal_summary_entry.sql
 04_triggers/02_trg_create_proposal_summary_entry.sql     (AFTER INSERT ON proposals)
 ```
 
-## Files chính
+## Main files
 
-| File | Mục đích |
+| File | Purpose |
 |------|----------|
-| `database_schema.sql` | **File tổng - chạy file này để setup toàn bộ** |
-| `01_extensions/01_enable_uuid_extension.sql` | Bật uuid-ossp cho uuid_generate_v4() |
-| `02_tables/01_proposals.sql` | Bảng cốt lõi lưu proposals |
-| `02_tables/02_proposal_voting_summary.sql` | Tổng hợp vote |
+| `database_schema.sql` | **Master file - run this to set up everything** |
+| `01_extensions/01_enable_uuid_extension.sql` | Enable uuid-ossp for uuid_generate_v4() |
+| `02_tables/01_proposals.sql` | Core table that stores proposals |
+| `02_tables/02_proposal_voting_summary.sql` | Vote aggregation |
 | `02_tables/03_drep_list.sql` | DRep registry |
 | `02_tables/04_drep_info.sql` | DRep metadata + stake |
 | `02_tables/05_drep_delegators.sql` | Delegation snapshots per epoch |
-| `02_tables/06_sync_jobs.sql` | Theo dõi lịch chạy sync jobs |
-| `03_indexes/*.sql` | Indexes tách riêng cho dễ maintain |
+| `02_tables/06_sync_jobs.sql` | Tracks sync job run history |
+| `03_indexes/*.sql` | Indexes kept separate for easier maintenance |
 | `04_triggers/01_trg_create_proposal_activities_table.sql` | Auto-create ga_* tables |
 | `04_triggers/02_trg_create_proposal_summary_entry.sql` | Auto-create voting_summary entry |
-| `04_triggers/03_drop_triggers.sql` | Helper drop triggers khi reload |
-| `migrations/20240101_initial_schema.sql` | Migration gốc (giữ nguyên cho lịch sử) |
+| `04_triggers/03_drop_triggers.sql` | Helper to drop triggers on reload |
+| `migrations/20240101_initial_schema.sql` | Original migration (kept for history) |
 
 ## Note
 
-- File master `database_schema.sql` dùng `\ir` (PostgreSQL include relative) để include các file con
-- Chạy trên `psql` (không chạy được trên pgAdmin query tool trực tiếp do `\ir`)
-- Để chạy trên pgAdmin: copy-paste nội dung từng file theo thứ tự
-- Schema chạy được trên bất kỳ PostgreSQL provider nào: Railway, Render, Fly.io, local Docker, etc.
+- The master file `database_schema.sql` uses `\ir` (PostgreSQL relative include) to include the sub-files
+- Run via `psql` (cannot be run directly in the pgAdmin query tool because of `\ir`)
+- To run on pgAdmin: copy-paste the contents of each file in order
+- The schema runs on any PostgreSQL provider: Railway, Render, Fly.io, local Docker, etc.

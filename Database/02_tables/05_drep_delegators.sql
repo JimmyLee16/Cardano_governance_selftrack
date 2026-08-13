@@ -1,5 +1,5 @@
--- Table: drep_delegators (Snapshot delegation hiện tại per epoch)
--- Phụ thuộc: 01_extensions/01_enable_uuid_extension.sql, 02_tables/03_drep_list.sql
+-- Table: drep_delegators (current delegation snapshot per epoch)
+-- Depends on: 01_extensions/01_enable_uuid_extension.sql, 02_tables/03_drep_list.sql
 
 CREATE TABLE IF NOT EXISTS public.drep_delegators (
     id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

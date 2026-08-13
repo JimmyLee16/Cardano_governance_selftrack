@@ -1,5 +1,5 @@
 -- 📄 new_repo\Database\migrations\20240101_initial_schema.sql
--- Migration khởi tạo schema ban đầu cho Cardano Governance
+-- Initial schema migration for Cardano Governance
 
 -- ============================================================
 -- Enable UUID extension
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.proposal_voting_summary (
 -- Triggers & Functions
 -- ============================================================
 
--- Function: Tạo ga_* table cho proposal mới
+-- Function: Create ga_* table for a new proposal
 CREATE OR REPLACE FUNCTION public.trg_create_proposal_activities_table()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -133,13 +133,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger: Chạy sau mỗi INSERT INTO proposals
+-- Trigger: Runs after each INSERT INTO proposals
 CREATE TRIGGER trg_create_proposal_activities_table
     AFTER INSERT ON public.proposals
     FOR EACH ROW
     EXECUTE FUNCTION public.trg_create_proposal_activities_table();
 
--- Function: Tạo entry trong proposal_voting_summary
+-- Function: Create an entry in proposal_voting_summary
 CREATE OR REPLACE FUNCTION public.trg_create_proposal_summary_entry()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -167,7 +167,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger: Chạy sau mỗi INSERT INTO proposals
+-- Trigger: Runs after each INSERT INTO proposals
 CREATE TRIGGER trg_create_proposal_summary_entry
     AFTER INSERT ON public.proposals
     FOR EACH ROW

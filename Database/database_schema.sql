@@ -1,7 +1,7 @@
 -- 📄 new_repo\Database\database_schema.sql
 -- Complete PostgreSQL Schema for Cardano Governance (Combined Master)
 -- Auto-generated from individual scripts in 01_extensions/, 02_tables/, 03_indexes/, 04_triggers/
--- Chạy: psql "$DATABASE_URL" -f database_schema.sql
+-- Run: psql "$DATABASE_URL" -f database_schema.sql
 
 -- ============================================================
 -- 01 Extensions
@@ -9,7 +9,7 @@
 \ir 01_extensions/01_enable_uuid_extension.sql
 
 -- ============================================================
--- 02 Core Tables (theo thứ tự phụ thuộc)
+-- 02 Core Tables (in dependency order)
 -- ============================================================
 \ir 02_tables/01_proposals.sql
 \ir 02_tables/02_proposal_voting_summary.sql

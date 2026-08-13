@@ -1,5 +1,5 @@
--- Table: drep_info (Thông tin chi tiết DRep + stake)
--- Phụ thuộc: 01_extensions/01_enable_uuid_extension.sql, 02_tables/03_drep_list.sql
+-- Table: drep_info (detailed DRep info + stake)
+-- Depends on: 01_extensions/01_enable_uuid_extension.sql, 02_tables/03_drep_list.sql
 
 CREATE TABLE IF NOT EXISTS public.drep_info (
     id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

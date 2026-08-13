@@ -1,5 +1,5 @@
--- Table: proposal_voting_summary (tổng hợp vote theo proposal)
--- Phụ thuộc: 01_extensions/01_enable_uuid_extension.sql, 02_tables/01_proposals.sql
+-- Table: proposal_voting_summary (vote aggregation per proposal)
+-- Depends on: 01_extensions/01_enable_uuid_extension.sql, 02_tables/01_proposals.sql
 
 CREATE TABLE IF NOT EXISTS public.proposal_voting_summary (
     id                                          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -1,6 +1,6 @@
 // js/config.js
-// Table column definitions cho DRP scripts
-// Khớp với config.py::TABLE_COLUMNS
+// Table column definitions for DRP scripts
+// Matches config.py::TABLE_COLUMNS
 
 // drep_list columns
 exports.drep_list = [
@@ -55,8 +55,8 @@ exports.proposals = [
 ];
 
 // ── Aggregated export ─────────────────────────────────────────────
-// Các sync script dùng dạng: const { TABLE_COLUMNS } = require('./config')
-// Khớp với config.py::TABLE_COLUMNS
+// Sync scripts use: const { TABLE_COLUMNS } = require('./config')
+// Matches config.py::TABLE_COLUMNS
 const TABLE_COLUMNS = {
   drep_list: [
     'id',

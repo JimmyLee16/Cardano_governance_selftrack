@@ -1,57 +1,57 @@
 # 🚀 QUICK START - Cardano Governance Sync Tool
 
-> **Chạy xong 5 bước này trong 5 phút** để có database hoạt động.
+> **Complete these 5 steps in 5 minutes** to get a working database.
 
 ---
 
-## ⚡ Bước 1: Clone & Cài đặt
+## ⚡ Step 1: Clone & Install
 
 ```bash
 # 1. Clone repo
 git clone <repo-url>
 cd neon_sync
 
-# 2. Tạo virtual env (Windows)
+# 2. Create virtual env (Windows)
 python -m venv .venv
 .venv\Scripts\activate
 
-# 3. Cài dependencies
+# 3. Install dependencies
 pip install -r requirements.txt
 ```
 
-> **Lưu ý**: Cần Python 3.11+. Nếu dùng Windows, `pip install psycopg2-binary` có thể thất bại do thiếu C compiler - dùng `pip install psycopg2` (sẽ tự build).
+> **Note**: Python 3.11+ is required. On Windows, `pip install psycopg2-binary` may fail due to a missing C compiler - use `pip install psycopg2` (it will build automatically).
 
 ---
 
-## ⚡ Bước 2: Cấu hình `.env`
+## ⚡ Step 2: Configure `.env`
 
 ```bash
 copy .env.example .env
 ```
 
-Chỉnh file `.env` với các giá trị sau:
+Edit the `.env` file with the following values:
 
 ```ini
 # ===== Cardano API =====
 BLOCKFROST_PROJECT_ID=your_blockfrost_project_id
 IPFS_GATEWAY=https://ipfs.io/ipfs/
 
-# ===== Neon PostgreSQL (Nguồn thật) =====
+# ===== Neon PostgreSQL (Real source) =====
 NEON_CONN=postgresql://user:password@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
 
-# ===== Supabase (Dữ liệu xem/UI) =====
+# ===== Supabase (View/UI data) =====
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your_service_role_key        # <--- PHẢI service role key, không phải anon!
+SUPABASE_KEY=your_service_role_key        # <--- MUST be a service role key, not anon!
 SUPABASE_GOVERNANCE_URL_1=https://your-project.supabase.co
 SUPABASE_GOVERNANCE_SERVICE_ROLE_KEY_1=your_service_role_key
 ```
 
-> **Quan trọng**: `NEON_CONN` bắt buộc có `?sslmode=require`. Chuỗi kết nối mẫu:
+> **Important**: `NEON_CONN` must include `?sslmode=require`. Example connection string:
 > `postgresql://ep_user:ep_pwd@ep-cardanainstance-pooler.us-east-1.aws.neon.tech/cardano?sslmode=require`
 
 ---
 
-## ⚡ Bước 3: Kiểm tra kết nối
+## ⚡ Step 3: Check the connection
 
 ```bash
 python -c "
@@ -62,50 +62,50 @@ conn.close()
 "
 ```
 
-Nếu thấy `✅ Neon connection OK` → Tiếp bước 4.
+If you see `✅ Neon connection OK` → Continue to step 4.
 
-Nếu lỗi: Kiểm tra `NEON_CONN` có đúng format không, và cho phép IP kết nối tới Neon.
+On error: Check that `NEON_CONN` has the correct format, and allow your IP to connect to Neon.
 
 ---
 
-## ⚡ Bước 4: Chạy pipeline đồng bộ (full)
+## ⚡ Step 4: Run the sync pipeline (full)
 
 ```bash
-# Chạy tất cả các bước theo đúng thứ tự:
+# Run all steps in the correct order:
 python sync_all.py
 ```
 
-Hoặc chạy từng bước riêng lẻ (theo thứ tự quan trọng):
+Or run each step individually (in order of importance):
 
 ```bash
-# Bước 4.1: Sync epoch + status proposal
+# Step 4.1: Sync epoch + proposal status
 python sync_epoch.py
 
-# Bước 4.2: Sync proposals + tạo ga_* tables (trigger tự động)
+# Step 4.2: Sync proposals + create ga_* tables (auto trigger)
 python sync_proposals.py
 
-# Bước 4.3: Sync DRep list + info
+# Step 4.3: Sync DRep list + info
 python sync_drep_list.py
 python sync_drep_info.py
 
-# Bước 4.4: Sync vote activities + IPFS comments (QUAN TR�ỌNG)
+# Step 4.4: Sync vote activities + IPFS comments (IMPORTANT)
 python sync_vote_activities.py --only-active
 
-# Bước 4.5: Sync delegators (current + history)
+# Step 4.5: Sync delegators (current + history)
 python sync_drep_delegators.py
 ```
 
-> **Lưu ý quan trọng**: Order quan trọng! Bắt buộc chạy theo thứ tự trên. Trigger tạo `ga_*` tables sẽ hoạt động đúng khi `proposals` đã có dữ liệu.
+> **Important note**: Order matters! You must run the steps in the order above. The trigger that creates `ga_*` tables only works correctly once `proposals` has data.
 
 ---
 
-## ⚡ Bước 5: Xác nhận dữ liệu
+## ⚡ Step 5: Verify the data
 
 ```bash
 python verify.py
 ```
 
-**Kết quả mong đợi** (số row count ví dụ):
+**Expected result** (example row counts):
 
 ```
 proposals:               45
@@ -117,36 +117,36 @@ drep_delegators:        28
 sync_jobs:              6
 ```
 
-Nếu tất cả bảng đều có row > 0 → **Setup xong! Bắt đầu dùng GUI hoặc script của bạn.**
+If all tables have row > 0 → **Setup complete! Start using the GUI or your own scripts.**
 
 ---
 
-## 🛠 Troubleshooting sau bước 5
+## 🛠 Troubleshooting after step 5
 
-| Lỗi phổ biến | Nguyên nhân | Fix |
+| Common error | Cause | Fix |
 |--------------|-----------|-----|
-| Comment NULL liên tục | `meta_url` bị None hoặc IPFS không có `comment`/`rationale` | Kiểm tra API Koios: `GET /api/v1/proposal_votes?_proposal_id={pid}` |
-| `neon_upsert_batch` lỗi batch | Thiếu key `comment` trong row dict | Code đã fix: Luôn include `'comment': comment` (có thể là `''`) |
-| `sync_epoch.py` chậm | BATCH_SIZE quá nhỏ | Tăng từ 1000 lên 5000 trong `config.py` |
-| `psql` command not found | Chưa cài PostgreSQL client | Windows: tải Installer PG; Mac: `brew install postgresql` |
+| Comment stays NULL | `meta_url` is None or IPFS has no `comment`/`rationale` | Check the Koios API: `GET /api/v1/proposal_votes?_proposal_id={pid}` |
+| `neon_upsert_batch` batch error | Missing `comment` key in the row dict | Code is fixed: Always include `'comment': comment` (may be `''`) |
+| `sync_epoch.py` slow | BATCH_SIZE too small | Increase from 1000 to 5000 in `config.py` |
+| `psql` command not found | PostgreSQL client not installed | Windows: download PG Installer; Mac: `brew install postgresql` |
 
 ---
 
-## 📦 Tài liệu tham khảo sau Quick Start
+## 📦 References after Quick Start
 
-- `README.md` - Documentation đầy đủ (architecture, scripts, GUI, backup)
-- `SCHEMA.md` - Chi tiết schema database + trigger + code samples
-- `logs/` - Logs tự động tạo sau mỗi lần chạy script
-- `backups/` - Sao lưu database (chạy `python backup_neon_db.py`)
-
----
-
-## 🎯 Bây giờ làm gì?
-
-1. **Chạy GUI**: `python gui.py` - có giao diện kéo thả từng bước
-2. **Xem code mẫu**: `SCHEMA.md` có kèm code cho upsert, fetch IPPS, backup
-3. **Tự động hóa**: Thêm vào Task Scheduler (Windows) hoặc cron (Linux/Mac) để chạy hàng giờ/ngày
-4. **Deploy Supabase Edge Functions** (optional): Xem `README.md` section ☁️ Supabase Edge Functions
+- `README.md` - Full documentation (architecture, scripts, GUI, backup)
+- `SCHEMA.md` - Database schema details + triggers + code samples
+- `logs/` - Logs are created automatically after each script run
+- `backups/` - Database backups (run `python backup_neon_db.py`)
 
 ---
-*Quick Start tự động tạo vào 12/08/2026*
+
+## 🎯 What to do now?
+
+1. **Run the GUI**: `python gui.py` - has a drag-and-drop interface for each step
+2. **View sample code**: `SCHEMA.md` includes code for upsert, fetch IPPS, backup
+3. **Automate**: Add to Task Scheduler (Windows) or cron (Linux/Mac) to run hourly/daily
+4. **Deploy Supabase Edge Functions** (optional): See the ☁️ Supabase Edge Functions section in `README.md`
+
+---
+*Quick Start auto-generated on 12/08/2026*

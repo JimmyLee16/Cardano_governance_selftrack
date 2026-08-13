@@ -1,5 +1,5 @@
--- Table: proposals (cốt lõi - lưu danh sách proposals on-chain)
--- Phụ thuộc: 01_extensions/01_enable_uuid_extension.sql
+-- Table: proposals (core - stores the on-chain proposals list)
+-- Depends on: 01_extensions/01_enable_uuid_extension.sql
 
 CREATE TABLE IF NOT EXISTS public.proposals (
     id                          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -1,8 +1,8 @@
--- Function & Trigger: Tự động tạo ga_* table cho proposal mới
--- Chạy BEFORE INSERT trên proposals (sets activities_table_name + activities_table_created)
--- Phụ thuộc: 02_tables/01_proposals.sql
+-- Function & Trigger: Auto-create ga_* table for a new proposal
+-- Runs BEFORE INSERT on proposals (sets activities_table_name + activities_table_created)
+-- Depends on: 02_tables/01_proposals.sql
 
--- Function: Tạo ga_* table cho proposal mới (dựa trên proposal_id)
+-- Function: Create ga_* table for a new proposal (based on proposal_id)
 CREATE OR REPLACE FUNCTION public.create_proposal_activities_table()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -58,7 +58,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
 
--- Trigger: Chạy trước mỗi INSERT INTO proposals
+-- Trigger: Runs before each INSERT INTO proposals
 DROP TRIGGER IF EXISTS trg_create_proposal_activities_table ON public.proposals;
 CREATE TRIGGER trg_create_proposal_activities_table
     BEFORE INSERT ON public.proposals

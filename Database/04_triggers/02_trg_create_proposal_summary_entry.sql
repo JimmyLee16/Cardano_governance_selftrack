@@ -1,8 +1,8 @@
--- Function & Trigger: Tự động tạo entry trong proposal_voting_summary
--- Chạy AFTER INSERT trên proposals
--- Phụ thuộc: 02_tables/01_proposals.sql, 02_tables/02_proposal_voting_summary.sql
+-- Function & Trigger: Auto-create an entry in proposal_voting_summary
+-- Runs AFTER INSERT on proposals
+-- Depends on: 02_tables/01_proposals.sql, 02_tables/02_proposal_voting_summary.sql
 
--- Function: Tạo entry trong proposal_voting_summary
+-- Function: Create an entry in proposal_voting_summary
 CREATE OR REPLACE FUNCTION public.create_proposal_summary_entry()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -13,7 +13,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
 
--- Trigger: Chạy sau mỗi INSERT INTO proposals
+-- Trigger: Runs after each INSERT INTO proposals
 DROP TRIGGER IF EXISTS trg_create_proposal_summary_entry ON public.proposals;
 CREATE TRIGGER trg_create_proposal_summary_entry
     AFTER INSERT ON public.proposals

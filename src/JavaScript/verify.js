@@ -8,7 +8,7 @@ const { TABLE_COLUMNS } = require('./config');
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
-  console.error('❌ Thiếu DATABASE_URL trong .env');
+  console.error('❌ Missing DATABASE_URL in .env');
   process.exit(1);
 }
 

@@ -1,24 +1,24 @@
 # Cardano Governance Sync Tool
 
-Repo công khai cho hệ thống đồng bộ governance data từ Cardano blockchain (Blockfrost/Koios/IPFS) → **PostgreSQL** (Railway, Render, local, Docker, etc.).
+Public repo for a governance data sync system from the Cardano blockchain (Blockfrost/Koios/IPFS) → **PostgreSQL** (Railway, Render, local, Docker, etc.).
 
-> **⚠️ Đây là phiên bản cơ bản (baseline).**
+> **⚠️ This is the baseline version.**
 >
-> Đủ để: khởi tạo database, fetch + ghi dữ liệu governance từ Koios/Blockfrost/IPFS vào PostgreSQL, verify, backup, generate AI summaries, TUI/CLI.
+> Enough to: initialize the database, fetch + write governance data from Koios/Blockfrost/IPFS into PostgreSQL, verify, backup, generate AI summaries, TUI/CLI.
 >
-> Chưa bao gồm các tầng mở rộng (analytics, reporting, sharding, views, functions phụ trợ). Tự thêm khi cần xây dựng các hoạt động theo dõi, phân tích và đánh giá sâu. 
+> Does not yet include extension layers (analytics, reporting, sharding, views, auxiliary functions). Add them yourself when you need deep tracking, analysis, and evaluation features.
 
-## Cấu trúc thư mục
+## Directory Structure
 
 ```
 new_repo/
-├── Database/                          # SQL schema + hướng dẫn setup
-│   ├── database_schema.sql            # Full schema (CREATE TABLE 6 bảng + triggers)
-│   ├── setup_guide.md                 # Hướng dẫn setup PostgreSQL
+├── Database/                          # SQL schema + setup guide
+│   ├── database_schema.sql            # Full schema (CREATE TABLE 6 tables + triggers)
+│   ├── setup_guide.md                 # PostgreSQL setup guide
 │   └── migrations/
 │       └── 20240101_initial_schema.sql
 ├── src/
-│   ├── Python/                        # 14 script sync + CLI + TUI (PostgreSQL generic)
+│   ├── Python/                        # 14 sync scripts + CLI + TUI (PostgreSQL generic)
 │   │   ├── tui.py                     # TUI entry (full-screen, ANSI, pure stdlib)
 │   │   ├── cli.py                     # CLI entry (subcommands)
 │   │   ├── config.py                  # Table columns, API config
@@ -30,13 +30,13 @@ new_repo/
 │   │   ├── sync_drep_delegators.py
 │   │   ├── sync_voting_summary.py
 │   │   ├── sync_vote_activities.py
-│   │   ├── sync_all.py                # Orchestrator (chạy toàn bộ pipeline)
-│   │   ├── verify.py                  # Kiểm tra row counts
+│   │   ├── sync_all.py                # Orchestrator (runs the whole pipeline)
+│   │   ├── verify.py                  # Checks row counts
 │   │   ├── _backfill_recent_20.py
 │   │   ├── backup_db.py
 │   │   ├── generate_ai_summaries.py
 │   │   └── utils/                     # 9 helper modules
-│   └── JavaScript/                    # 12 script sync + CLI + TUI (PostgreSQL generic)
+│   └── JavaScript/                    # 12 sync scripts + CLI + TUI (PostgreSQL generic)
 │       ├── tui.js                     # TUI entry (blessed, full-screen)
 │       ├── cli.js                     # CLI entry (Commander + Inquirer)
 │       ├── sync_epoch.js
@@ -51,7 +51,7 @@ new_repo/
 │       ├── config.js                  # Table column definitions
 │       ├── helpers.js                 # Core helpers (PostgreSQL, IPFS, Koios, logging)
 │       └── package.json
-├── .env.example                       # Template biến môi trường
+├── .env.example                       # Environment variable template
 ├── requirements.txt                   # Python dependencies
 ├── package.json                       # Root JS (points to src/JavaScript)
 ├── tui.py                             # Root entry → src/Python/tui.py
@@ -60,15 +60,15 @@ new_repo/
 └── README.md
 ```
 
-## Cài đặt
+## Installation
 
 ### Python
 ```bash
 cd src/Python
 pip install -r ../../requirements.txt
-# Hoặc: pip install psycopg2-binary requests python-dotenv
+# Or: pip install psycopg2-binary requests python-dotenv
 cp ../../.env.example .env
-# Chỉnh .env với DATABASE_URL, BLOCKFROST_PROJECT_ID
+# Edit .env with DATABASE_URL, BLOCKFROST_PROJECT_ID
 ```
 
 ### JavaScript (Node.js)
@@ -76,40 +76,40 @@ cp ../../.env.example .env
 cd src/JavaScript
 npm install
 cp ../../.env.example .env
-# Chỉnh .env với DATABASE_URL, BLOCKFROST_PROJECT_ID
+# Edit .env with DATABASE_URL, BLOCKFROST_PROJECT_ID
 ```
 
-## Chạy
+## Run
 
-### TUI (full-screen interactive) — Khuyến nghị
+### TUI (full-screen interactive) — Recommended
 ```bash
-# Từ repo root — không cần cd
+# From repo root — no cd needed
 python tui.py          # Python TUI (pure stdlib, ANSI)
 node tui.js            # JS TUI (blessed, full-screen)
 
-# Hoặc từ src/
+# Or from src/
 cd src/Python && python tui.py
 cd src/JavaScript && node tui.js
 ```
 
-TUI có menu full-screen, arrow keys để navigate, Enter để chọn:
-- Full Sync / Sync từng bước
+TUI has a full-screen menu, arrow keys to navigate, Enter to select:
+- Full Sync / Sync per step
 - Verify DB / DB Status
 - Backup DB (full / logic only)
 - AI Summaries (dry-run / apply / skip-existing)
-- View Logs (chọn file, xem last 100 lines)
+- View Logs (choose file, view last 100 lines)
 
 ### Python CLI (subcommands)
 ```bash
 cd src/Python
 
-# Full sync (chạy hết 7 bước + verify)
+# Full sync (runs all 7 steps + verify)
 python cli.py sync
 
-# Skip drep_delegators (chậm)
+# Skip drep_delegators (slow)
 python cli.py sync --skip-delegators
 
-# Chỉ chạy 1 bước
+# Run only 1 step
 python cli.py sync proposals
 
 # Verify DB
@@ -142,7 +142,7 @@ node cli.js sync
 # Skip drep_delegators
 node cli.js sync --skip-delegators
 
-# Chỉ 1 bước
+# Only 1 step
 node cli.js sync proposals
 
 # Verify DB
@@ -166,7 +166,7 @@ node cli.js logs --tail
 node cli.js
 ```
 
-### Direct scripts (không qua CLI)
+### Direct scripts (bypassing CLI)
 ```bash
 # Python
 python sync_all.py --skip-delegators
@@ -177,40 +177,40 @@ node sync_all.js --skip-delegators
 node verify.js
 ```
 
-## Các bước sync (thứ tự)
+## Sync steps (in order)
 
-| Bước | Script | Mô tả |
+| Step | Script | Description |
 |------|--------|-------|
-| 1 | `sync_epoch` | Cập nhật epoch hiện tại từ Koios tip |
-| 2 | `sync_proposals` | Lấy proposal list từ Koios → PostgreSQL |
-| 3 | `sync_drep_list` | Lấy DRep registry từ Blockfrost |
-| 4 | `sync_drep_info` | Lấy metadata/stake DRep từ Blockfrost |
-| 5 | `sync_voting_summary` | Lấy voting summary từ Koios |
-| 6 | `sync_vote_activities` | Lấy vote activities (votes + IPFS comments) → ga_* tables |
-| 7 | `sync_drep_delegators` | Lấy delegators từ Koios (chậm, có thể skip) |
+| 1 | `sync_epoch` | Update current epoch from Koios tip |
+| 2 | `sync_proposals` | Fetch proposal list from Koios → PostgreSQL |
+| 3 | `sync_drep_list` | Fetch DRep registry from Blockfrost |
+| 4 | `sync_drep_info` | Fetch DRep metadata/stake from Blockfrost |
+| 5 | `sync_voting_summary` | Fetch voting summary from Koios |
+| 6 | `sync_vote_activities` | Fetch vote activities (votes + IPFS comments) → ga_* tables |
+| 7 | `sync_drep_delegators` | Fetch delegators from Koios (slow, can skip) |
 
 ## Database Setup
 
-Xem `Database/setup_guide.md` để setup PostgreSQL với schema đầy đủ (6 bảng chính + triggers tạo ga_* tables tự động).
+See `Database/setup_guide.md` to set up PostgreSQL with the full schema (6 main tables + triggers that auto-create ga_* tables).
 
-Schema chạy được trên bất kỳ PostgreSQL provider nào: Railway, Render, Fly.io, local Docker, etc.
+The schema runs on any PostgreSQL provider: Railway, Render, Fly.io, local Docker, etc.
 
-## Biến môi trường
+## Environment Variables
 
-| Variable | Required | Mô tả |
+| Variable | Required | Description |
 |----------|----------|-------|
 | `DATABASE_URL` | ✅ | PostgreSQL connection string: `postgresql://user:pass@host:5432/db?sslmode=require` |
 | `BLOCKFROST_PROJECT_ID` | ✅ | Blockfrost API key |
-| `IPFS_GATEWAY` | ❌ | IPFS gateway (mặc định: `https://ipfs.io/ipfs/`) |
+| `IPFS_GATEWAY` | ❌ | IPFS gateway (default: `https://ipfs.io/ipfs/`) |
 
-## Phạm vi
+## Scope
 
-Đây là phiên bản cơ bản — đủ để khởi tạo DB, sync, verify, backup, AI summaries, TUI/CLI. Các tầng mở rộng (analytics, reporting, sharding, views, functions phụ trợ) tự thêm khi cần.
+This is the baseline version — enough to initialize the DB, sync, verify, backup, AI summaries, TUI/CLI. Add extension layers (analytics, reporting, sharding, views, auxiliary functions) yourself when needed.
 
-## Lưu ý
+## Notes
 
-- **Python & JavaScript**: Cả hai đều dùng PostgreSQL generic (`DATABASE_URL`), không lock vào provider cụ thể
-- ga_* tables được tạo tự động bởi trigger khi insert vào `proposals`
-- `sync_vote_activities` bỏ qua IPFS fetch nếu vote đã có comment trong DB
-- `sync_drep_info` và `sync_drep_delegators` có checkpoint/resume (chạy nhiều lần để hoàn thành)
-- Logs lưu tại `src/Python/logs/` (Python) hoặc console (JS)
+- **Python & JavaScript**: Both use generic PostgreSQL (`DATABASE_URL`), not locked to a specific provider
+- ga_* tables are auto-created by a trigger on insert into `proposals`
+- `sync_vote_activities` skips IPFS fetch if the vote already has a comment in the DB
+- `sync_drep_info` and `sync_drep_delegators` support checkpoint/resume (run multiple times to complete)
+- Logs saved at `src/Python/logs/` (Python) or console (JS)

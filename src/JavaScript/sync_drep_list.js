@@ -14,7 +14,7 @@ const { TABLE_COLUMNS } = require('./config');
 const BLOCKFROST_KEY = process.env.BLOCKFROST_PROJECT_ID;
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!BLOCKFROST_KEY || !DATABASE_URL) {
-  console.error('❌ Thiếu BLOCKFROST_PROJECT_ID hoặc DATABASE_URL trong .env');
+  console.error('❌ Missing BLOCKFROST_PROJECT_ID or DATABASE_URL in .env');
   process.exit(1);
 }
 
