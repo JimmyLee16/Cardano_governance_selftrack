@@ -1,12 +1,16 @@
 # Cardano Governance Sync Tool
 
-Public repo for a governance data sync system from the Cardano blockchain (Blockfrost/Koios/IPFS) → **PostgreSQL** (Railway, Render, local, Docker, etc.).
+Public repo for a governance data tracking & sync system from the Cardano blockchain (Blockfrost/Koios/IPFS) → **PostgreSQL** (Railway, Render, local, Docker, etc.).
 
 > **⚠️ This is the baseline version.**
 >
 > Enough to: initialize the database, fetch + write governance data from Koios/Blockfrost/IPFS into PostgreSQL, verify, backup, generate AI summaries, TUI/CLI.
 >
 > Does not yet include extension layers (analytics, reporting, sharding, views, auxiliary functions). Add them yourself when you need deep tracking, analysis, and evaluation features.
+
+## Important
+
+This repo was created and distributed by **Jimmy Lee - Cardano Ambassador**. Tracking and analyzing Cardano governance activities is very complicated that repo can't cover everything however users can totally build everything from this basic setup. 
 
 ## Directory Structure
 
